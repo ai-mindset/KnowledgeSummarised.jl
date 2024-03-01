@@ -7,5 +7,9 @@ In 2017, a great new [microbe.tv](https://www.microbe.tv) podcast made its appea
 Through the [Immune playlist](https://www.youtube.com/watch?v=jnvBvbTcwIQ&list=PLGhmZX2NKiNkNlShZ2YuHH1GkwdsnH4pr&pp=iAQB), the audience has access to approximately 66 hours of high-quality scientific content over 49 episodes, and counting. This project aims to transcribe every playlist episode, soon after it gets uploaded. Each transcript will then be summarised, with the use of a Large Language Model.  
 The goal is to utilise open-source technology able to run locally on a personal computer, to learn about immunology in a time efficient way, affordably. Should this experiment yield satisfactory results, the same principle could be applied to longer microbe.tv playlists such as [TWiV](https://www.youtube.com/watch?v=Tcz0At17zJ8&list=PL55B28888146FAD78&pp=iAQB).
 
-The project is implemented in [Julia](https://julialang.org/), to demonstrate its versatility.  
+Technology stack:  
+[Julia](https://julialang.org/) for development
+[yt-dlp](https://github.com/yt-dlp/yt-dlp) to download podcast audio from its YouTube playlist  
+[Whisper-Faster](https://github.com/Purfview/whisper-standalone-win/releases/tag/faster-whisper) for audio transcription  
+[Ollama](https://ollama.ai/) with Llama2, for summarisation and information retrieval  
 
