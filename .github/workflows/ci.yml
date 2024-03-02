@@ -1,0 +1,30 @@
+name: Compile Julia Apps
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        julia-version: [1.10.2]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Julia
+      uses: julia-actions/setup-julia@v1
+      with:
+        version: ${{ matrix.julia-version }}
+
+    - name: Install PackageCompiler.jl
+      run: julia -e 'import Pkg; Pkg.add("PackageCompiler")'
+
+    - name: Load PackageCompiler.jl
+      run: julia -e 'using PackageCompiler'
+
+    - name: Create Julia app
+      run: julia -e 'create_app("./", "./AppCompiled")'
