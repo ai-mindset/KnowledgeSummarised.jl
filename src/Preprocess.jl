@@ -199,6 +199,10 @@ end
 """
 function summarise_text(model::String, chunks::Dict{Int64, String})
     prompt = chunks[1] # FIXME: temporary, for testing
+    prompt *= "\nSummarise the most important knowledge in the text above,
+        in at most three sentences.
+        Only return the summary and nothing else.
+        Be concise"
     request = OllamaAI.send_request(prompt, model)
     url = "http://localhost:11434/api/generate"
     res = HTTP.request("POST", url, [("Content-type", "application/json")], request)
