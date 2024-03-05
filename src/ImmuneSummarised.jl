@@ -1,5 +1,13 @@
 module ImmuneSummarised
+include("Preprocess.jl")
 
-greet() = print("Hello World!")
+file = "./Immune 77： Squeezing the most killing out of neutrophils.txt"
+Preprocess.clean_text(file)
+
+text::Vector{String} = open(file) |> readlines
+num_of_words::Int64 = Preprocess.token_count(text)
+d::Dict{Int64, String} = Preprocess.segment_input(text)
+
+Preprocess.summarise_text("mistral:instruct", d)
 
 end # module ImmuneSummarised

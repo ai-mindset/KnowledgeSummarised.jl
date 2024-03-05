@@ -2,3 +2,9 @@ name = "ImmuneSummarised"
 uuid = "c356c18d-a2b9-448a-9e95-6913b2d0a471"
 authors = ["Eirini <49712302+inferential@users.noreply.github.com>"]
 version = "0.1.0"
+
+[deps]
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+Query = "1a8c2f83-1ff3-5112-b086-8aa67b057ba1"

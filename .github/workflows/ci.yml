@@ -27,4 +27,4 @@ jobs:
       run: julia -e 'using PackageCompiler'
 
     - name: Create Julia app
-      run: julia -e 'create_app("./", "./AppCompiled")'
+      run: julia -e 'create_app("./", "./ImmuneSummarised", force=true, filter_stdlibs=false, incremental=true, sysimage_build_args=`--compile=min -O0 --min-optlevel=0 --inline=no --check-bounds=no`)'
