@@ -8,6 +8,6 @@ text::Vector{String} = open(file) |> readlines
 num_of_words::Int64 = Preprocess.token_count(text)
 d::Dict{Int64, String} = Preprocess.segment_input(text)
 
-Preprocess.summarise_text("llama2", d)
+summaries = Preprocess.summarise_text("llama2", d)
 
 end # module ImmuneSummarised
