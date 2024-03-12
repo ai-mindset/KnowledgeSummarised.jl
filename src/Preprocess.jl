@@ -112,7 +112,9 @@ function clean_text(filename::String)
         open(filename, "w") do file
             foreach(line -> println(file, line), lines_to_keep)
         end
+        println("$filename cleaned!")
     catch e
+        println("Oh no!")
         println("clean_text():$(e)")
     end
 end
@@ -128,17 +130,20 @@ Approximately count the total number of tokens in a vector of strings.
 - `vector::Vector{String}`: A vector of strings.
 
 # Returns
-- `Int64`: The total number of tokens in the vector of strings.
+- `Int64`: The total number of tokens in the vector of strings
+- `Int64`: The total number of words in the vector of strings
 """
-function token_count(vector::Vector{String})::Int64
-    token_estimate = 0
+function word_and_token_count(vector::Vector{String})::Tuple{Int64, Int64}
+    token_estimate::Float64 = 0
+    total_words::Int64 = 0
 
     for text in vector
         words = split(text)
-        token_estimate += length(words) / 0.75
+        total_words += length(words)
+        token_estimate += total_words / 0.75
     end
 
-    return round(Int64, token_estimate)
+    return round(Int64, token_estimate), total_words
 end
 
 """
@@ -153,7 +158,7 @@ Approximately count the total number of tokens in a string of text.
 - `Int64`: The total number of tokens in the string.
 """
 
-function token_count(text::String)::Int64
+function word_and_token_count(text::String)::Int64
     token_estimate = length(split(text)) / 0.75
 
     return round(Int64, token_estimate)
@@ -179,7 +184,7 @@ function segment_input(vector::Vector{String})
 
     for text in vector
         chunk *= text * " "
-        if token_count(chunk) >= (CONTEXT_TOKENS - 10)
+        if word_and_token_count(chunk) >= (CONTEXT_TOKENS - 10)
             d[i] = chunk
             chunk = ""
             i += 1
@@ -202,8 +207,8 @@ function summarise_text(model::String, chunks::Dict{Int64, String})::Vector{Stri
     local url = "http://localhost:11434/api/generate"
     for (k, v) in chunks
         prompt = "Transcript excerpt: $v"
-        prompt *= """\nSummarise the most important knowledge in the transcript above, in three sentences at most.
-            Only return the summary, wrapped in double quotes (" "), and nothing else.
+        prompt *= """\nSummarise the most important knowledge in the transcript above, in three paragraphs at most.
+            Only return the summary, wrapped in single quotes (' '), and nothing else.
             Be concise"""
         request = OllamaAI.send_request(prompt, model)
         res = HTTP.request("POST", url, [("Content-type", "application/json")], request)

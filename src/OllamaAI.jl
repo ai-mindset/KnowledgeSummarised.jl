@@ -2,7 +2,6 @@ module OllamaAI
 
 using HTTP
 using JSON
-using Query
 import DataFrames: DataFrame
 
 """
