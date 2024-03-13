@@ -23,8 +23,5 @@ jobs:
     - name: Install PackageCompiler.jl
       run: julia -e 'import Pkg; Pkg.add("PackageCompiler")'
 
-    - name: Load PackageCompiler.jl
-      run: julia -e 'using PackageCompiler'
-
-    - name: Create Julia app
-      run: julia -e 'create_app("./", "./ImmuneSummarised", force=true, filter_stdlibs=false, incremental=true, sysimage_build_args=`--compile=min -O0 --min-optlevel=0 --inline=no --check-bounds=no`)'
+    - name: Load PackageCompiler.jl and create Julia app
+      run: julia -e 'using PackageCompiler; create_app("./", "./ImmuneSummarised", force=true, filter_stdlibs=false, incremental=true, sysimage_build_args=`--compile=min -O0 --min-optlevel=0 --inline=no --check-bounds=no`)'
