@@ -1,6 +1,7 @@
 # Immune, summarised
 
 [![SciML Code Style](https://img.shields.io/static/v1?label=code%20style&message=SciML&color=9558b2&labelColor=389826)](https://github.com/SciML/SciMLStyle)
+[![Compile Julia Apps](https://github.com/inferential/ImmuneSummarised/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/inferential/ImmuneSummarised/actions/workflows/ci.yml)
 
 In 2017, a great new [microbe.tv](https://www.microbe.tv) podcast made its appearance. [Immune](https://www.microbe.tv/immune/) was introduced, hosted by [Prof. Vincent Racaniello](https://en.wikipedia.org/wiki/Vincent_Racaniello), [Dr. Cynthia Leifer](https://twitter.com/cindyleifer), [Dr. Steph Langel](https://langelresearchteam.com/the-team) and [Dr. Brianne Barker](http://twitter.com/bioprofbarker).  
 

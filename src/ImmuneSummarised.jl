@@ -1,5 +1,5 @@
 module ImmuneSummarised
-using ArgParse: ArgParseSettings, parse_args, add_arg_table!
+# using ArgParse: ArgParseSettings, parse_args, add_arg_table!
 include("Preprocess.jl")
 
 """
@@ -14,18 +14,18 @@ nothing
 # Returns
 - `args::Dict{String, Any}`: CLI argument(s)
 """
-function parse_cli_args()::Dict{String, Any}
-    settings = ArgParseSettings()
+# function parse_cli_args()::Dict{String, Any}
+#     settings = ArgParseSettings()
 
-    add_arg_table!(settings,
-        ["--file", "-f"],
-        Dict(:help => "transcript file name including relative path.")
-    )
+#     add_arg_table!(settings,
+#         ["--file", "-f"],
+#         Dict(:help => "transcript file name including relative path.")
+#     )
 
-    args = parse_args(settings)
+#     args = parse_args(settings)
 
-    return args
-end
+#     return args
+# end
 
 ##
 """
@@ -41,17 +41,19 @@ nothing
 - `summaries::Vector{String}`: Individual summaries of a larger document that may not fit in a smaller LLM's context Windows
 - `master_summary::Vector{String}`: A summary of all `summaries`
 """
-function julia_main()::Tuple{Vector{String}, Vector{String}}
-    args::Dict{String, Any} = parse_cli_args()
-    local file
-    for (k, v) in args
-        if k == "file"
-            file = v
-        else
-            error("Please pass flag '--file' or '-f' with a transcript file name string with its relative path")
-        end
-    end
+function julia_main(file::String)::Tuple{Vector{String}, Vector{String}}
+    # FIXME: find a way to compile the package such that it accepts CLI arguments
+    # args::Dict{String, Any} = parse_cli_args()
+    # local file
+    # for (k, v) in args
+    #     if k == "file"
+    #         file = v
+    #     else
+    #         error("Please pass flag '--file' or '-f' with a transcript file name string with its relative path")
+    #     end
+    # end
 
+    summaries::Vector{String} = master_summary::Vector{String} = []
     Preprocess.clean_text(file)
 
     text::Vector{String} = open(file) |> readlines
@@ -59,15 +61,17 @@ function julia_main()::Tuple{Vector{String}, Vector{String}}
     println("Original transcript contains $text_words words")
     d::Dict{Int64, String} = Preprocess.segment_input(text)
 
-    summaries::Vector{String} = Preprocess.summarise_text("mistral", d)
-    d_final::Dict{Int64, String} = Preprocess.segment_input(summaries)
-    master_summary::Vector{String} = Preprocess.summarise_text("mistral", d_final)
-    _, summary_words::Int64 = Preprocess.word_and_token_count(master_summary)
-    println("The summary contains $summary_words words. That is $(round(Int64, (text_words / summary_words)))x compression ratio")
+    append!(summaries, Preprocess.summarise_text("mistral", d))
+    if length(summaries) > 1
+        d_final::Dict{Int64, String} = Preprocess.segment_input(summaries)
+        append!(master_summary, Preprocess.summarise_text("mistral", d_final))
+        _, summary_words::Int64 = Preprocess.word_and_token_count(master_summary)
+        println("The summary contains $summary_words words. That is $(round(Int64, (text_words / summary_words)))x compression ratio")
+    end
 
     return summaries, master_summary
 end
 
-@time _, summary_of_summaries = julia_main()
+master_summary, summary_of_summaries = julia_main("./Immune 77_excerpt.txt")
 
 end # module ImmuneSummarised
