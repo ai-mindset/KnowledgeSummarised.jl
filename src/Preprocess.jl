@@ -16,44 +16,82 @@ const CONTEXT_WORDS = round(Int64, CONTEXT_TOKENS * 0.75)
 
 Download new episodes from a YouTube playlist of interest.  Episodes will be saved in
 ```julia
-$(splitpath(Base.active_project())[end-1])/playlist
+$(splitpath(Base.active_project())[end-1])/videos
 \```
 Make sure you've downloaded the latest [yt-dlp](https://github.com/yt-dlp/yt-dlp/releases)
 and placed it in your \$PATH
 
 # Arguments
-- `playlist_url::String`: A YouTube playlist URL, youtube.com, youtu.be, yewtu.be, piped.video etc. can be used
-- `playlist_file::String`: Text file keeping a record of the playlist videos that have already been downloaded to directory
+- `playlist_url::String`: A YouTube video or playlist URL, youtube.com, youtu.be, yewtu.be, piped.video etc. can be used
+
+# Keywords
+- `playlist_file::String = ""`: Text file keeping a record of the playlist videos that have already been downloaded to directory.
+If nothing is passed, it is assumed you're downloading a single episode
 
 # Returns
-- `nothing`
+- `episodes::Vector{SubString{String}}`: List of episodes' audio (.mp3) downloaded from `playlist_url`
 
 # Throws
 - `ErrorException`: If OS is unknown, throw error. Supported OSs are Linux, macOS, Windows.
 """
-function download_episodes(playlist_url::String, playlist_file::String)::Int64
+function download_episodes(
+        playlist_url::String; playlist_file::String = "")::Vector{SubString{String}}
     # TODO: Check if `yt-dlp` is installed. If not, `mkdir` and `curl` the latest release for the host OS. Set `chmod u+x` and run locally
-    dir = "./playlist"
-    mkdir(dir)
+
+    dir::String = "videos"
+    if !isdir(dir)
+        mkdir(dir)
+    end
     cd(dir)
+
+    # If playlist file is empty, we expect a single video URL to be passed in.
+    # Otherwise, we expect a playlist which should be recorded in a `playlist_file`
+    # for speeding up future playlist updates
+    local cmd
+    if Sys.islinux()
+        cmd = ["yt-dlp_linux -x --audio-format mp3 $(playlist_url) ",
+            "--download-archive $playlist_file"]
+        if playlist_file == ""
+            cmd = cmd[1]
+        end
+    elseif Sys.isapple()
+        cmd = ["yt-dlp_macos -x --audio-format mp3 $(playlist_url) ",
+            "--download-archive $playlist_file"]
+        if playlist_file == ""
+            cmd = cmd[1]
+        end
+    elseif Sys.iswindows()
+        cmd = ["yt-dlp_x86.exe -x --audio-format mp3 $(playlist_url) ",
+            "--download-archive $playlist_file"]
+        if playlist_file == ""
+            cmd = cmd[1]
+        end
+    else
+        error("Unknown OS")
+    end
     try
-        if Sys.islinux()
-            run(`yt-dlp_linux -x --audio-format mp3 $(playlist_url) --download-archive $(playlist_file)`)
-        elseif Sys.isapple()
-            run(`yt-dlp_macos -x --audio-format mp3 $(playlist_url) --download-archive $(playlist_file)`)
-        elseif Sys.iswindows()
-            run(`yt-dlp_x86.exe -x --audio-format mp3 $(playlist_url) --download-archive $(playlist_file)`)
+        if typeof(cmd) == Vector{String}
+            joined_cmd::String = join(cmd)
+            c = Cmd(convert(Vector{String}, split(joined_cmd)))
+            run(c)
         else
-            error("Unknown OS")
+            c = Cmd(convert(Vector{String}, split(cmd)))
+            run(c)
         end
     catch e
         println("download_episodes():$(e)")
     end
+
+    ep::String = readchomp(`ls`)
+    episodes::Vector{SubString{String}} = split(ep, "\n")
+    cd("./../") # Return to top-level
+
+    return episodes
 end
 
 ##
 """
-    transcribe(episode::String)
+    transcribe(episode::String; progress_bar::Bool = true, timestamps::Bool = false)
 
 Transcribe downloaded episode. Warning: slow process
 Make sure you've downloaded the latest [whisper-standalone-win](https://github.com/Purfview/whisper-standalone-win/releases)
@@ -62,26 +100,62 @@ and placed it in your PATH
 # Arguments
 - `episode::String`: Filepath that contains an episode transcript. Supported files are .rst, .txt, .md
 
+# Keywords
+- `progress_bar::Bool = true`: Show progress bar instead of actual transcript, during transcription
+- `timestamps::Bool = false`: Include timestamp in transcript
+
 # Returns
-- `nothing`
+- `transcripts::Vector{String}`: Vector of names of transcripts in "./transcripts" dir
 
 # Throws
 - `ErrorException`: If transcription fails, throw error
 othing
 """
-function transcribe(episode::String)
-    # TODO: Check if `whisper-faster` is installed. If not, `mkdir` and `curl` the latest release for the host OS. Set `chmod u+x` and run locally
-    # Print progress bar instead of transcript
-    progress_bar::String = "--print_progress=True"
-    # Print timestamp
-    timestamps::String = "--without_timestamps=True"
-    command::Cmd = `whisper-faster $episode --language=English --model=medium --output_dir=. $progress_bar $timestamps`
-    println("Transcribing $(episode)...")
+function transcribe(
+        episode::SubString{String}; progress_bar::Bool = true, timestamps::Bool = false)::Vector{String}
+    # TODO: Check if `whisper-faster` is installed. If not, `mkdir("exe")` or similar
+    # and `curl` the latest release for the host OS. Set `chmod u+x` and run locally
+
+    source = "videos"
+    dir = "transcripts"
+    if !isdir(dir)
+        mkdir(dir)
+    end
+    cd(dir)
+    out_rel_dir = "./" * dir
+    source_rel_dir = "./" * source * "/" * episode
+
+    cmd = ["whisper-faster $source_rel_dir --language=English --model=medium --output_dir=./$out_rel_dir"]
+    # Print progress bar instead of transcript?
+    prog_bar::String = tstamps::String = ""
+    if progress_bar == true
+        prog_bar = "--pp=true"
+        push!(cmd, prog_bar)
+    end
+    # Print timestamps?
+    if timestamps == false
+        tstamps = "--without_timestamps=true"
+        push!(cmd, tstamps)
+    end
+
     try
-        run(command)
+        if typeof(cmd) == Vector{String}
+            joined_cmd::String = join(cmd)
+            c = Cmd(convert(Vector{String}, split(joined_cmd)))
+            run(c)
+        else
+            c = Cmd(convert(Vector{String}, split(cmd)))
+            run(c)
+        end
     catch e
         println("transcribe():$(e)")
     end
+
+    t::String = readchomp(`ls`)
+    transcripts::Vector{SubString{String}} = split(t, "\n")
+    cd("./../") # Return to top-level
+
+    return transcripts
 end
 
 ##
