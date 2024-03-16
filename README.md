@@ -1,13 +1,13 @@
-# Immune, summarised
+# Knowledge, summarised
 
 [![SciML Code Style](https://img.shields.io/static/v1?label=code%20style&message=SciML&color=9558b2&labelColor=389826)](https://github.com/SciML/SciMLStyle)
 
-In 2017, a great new [microbe.tv](https://www.microbe.tv) podcast made its appearance. [Immune](https://www.microbe.tv/immune/) was introduced, hosted by [Prof. Vincent Racaniello](https://en.wikipedia.org/wiki/Vincent_Racaniello), [Dr. Cynthia Leifer](https://twitter.com/cindyleifer), [Dr. Steph Langel](https://langelresearchteam.com/the-team) and [Dr. Brianne Barker](http://twitter.com/bioprofbarker).  
+This project started as an efficient way to summarise some of the excellent [MicrobeTV](https://www.microbe.tv) podcast episodes, for my personal education. I chose [Immune](https://www.microbe.tv/immune/) as a starting point. It runs on a monthly cadence, each episode spans approx. 1 hour, where a panel of immunology experts discuss new publications. At the time of writing, the [Immune playlist](https://www.youtube.com/watch?v=jnvBvbTcwIQ&list=PLGhmZX2NKiNkNlShZ2YuHH1GkwdsnH4pr&pp=iAQB) contains approximately 66 hours of high-quality scientific content over 49 episodes (some older episodes seem to be missing from the YouTube playlist).
 
-Through the [Immune playlist](https://www.youtube.com/watch?v=jnvBvbTcwIQ&list=PLGhmZX2NKiNkNlShZ2YuHH1GkwdsnH4pr&pp=iAQB), the audience has access to approximately 66 hours of high-quality scientific content over 49 episodes, and counting. This project aims to transcribe every playlist episode, soon after it gets uploaded. Each transcript will then be summarised, with the use of a Large Language Model.  
-The goal is to utilise open-source technology able to run locally on a personal computer, to learn about immunology in a time efficient way, affordably. Should this experiment yield satisfactory results, the same principle could be applied to longer microbe.tv playlists such as [TWiV](https://www.youtube.com/watch?v=Tcz0At17zJ8&list=PL55B28888146FAD78&pp=iAQB).
+This initial aim acted as motivation for me to write a tool in Julia, which will help me learn what I'm interested in, at a faster pace. The final goal is to utilise open-source technology able to run locally on an affordable personal computer, to learn about immunology in a time efficient way, affordably.  
+Should this experiment yields satisfactory results, the same principle could be applied to different playlists depending on interest. Hence broadening the scope by naming this tool `KnowledgeSummarised.jl` i.e. knowledge, summarised, using Julia.
 
-Technology stack:  
+Technology stack:
 [Julia](https://julialang.org/) for development
 [yt-dlp](https://github.com/yt-dlp/yt-dlp) to download podcast audio from its YouTube playlist  
 [Whisper-Faster](https://github.com/Purfview/whisper-standalone-win/releases/tag/faster-whisper) for audio transcription  
