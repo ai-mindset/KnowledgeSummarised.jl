@@ -1,8 +1,6 @@
 module OllamaAI
 
-using HTTP
-using JSON
-import DataFrames: DataFrame
+using JSON: json
 
 """
     send_request(prompt::String, model::String)
@@ -23,7 +21,7 @@ function send_request(prompt::String, model::String)
     data["prompt"] = prompt
     data["stream"] = false  # turning off streaming response.
     data["temperature"] = 0.0
-    return JSON.json(data)
+    return json(data)
 end
 
 end

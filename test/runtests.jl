@@ -1,4 +1,4 @@
-using ImmuneSummarised
+using KnowledgeSummarised
 using Test
 
 @testset "Example tests" begin

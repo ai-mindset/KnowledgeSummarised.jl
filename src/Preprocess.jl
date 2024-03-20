@@ -34,8 +34,7 @@ If nothing is passed, it is assumed you're downloading a single episode
 # Throws
 - `ErrorException`: If OS is unknown, throw error. Supported OSs are Linux, macOS, Windows.
 """
-function download_episodes(
-        playlist_url::String; playlist_file::String = "")::Vector{SubString{String}}
+function download_episodes(playlist_url::String;)::Vector{SubString{String}}
     # TODO: Check if `yt-dlp` is installed. If not, `mkdir` and `curl` the latest release for the host OS. Set `chmod u+x` and run locally
 
     dir::String = "videos"
@@ -50,22 +49,13 @@ function download_episodes(
     local cmd
     if Sys.islinux()
         cmd = ["yt-dlp_linux -x --audio-format mp3 $(playlist_url) ",
-            "--download-archive $playlist_file"]
-        if playlist_file == ""
-            cmd = cmd[1]
-        end
+            "--download-archive playlist.txt"]
     elseif Sys.isapple()
         cmd = ["yt-dlp_macos -x --audio-format mp3 $(playlist_url) ",
-            "--download-archive $playlist_file"]
-        if playlist_file == ""
-            cmd = cmd[1]
-        end
+            "--download-archive playlist.txt"]
     elseif Sys.iswindows()
         cmd = ["yt-dlp_x86.exe -x --audio-format mp3 $(playlist_url) ",
-            "--download-archive $playlist_file"]
-        if playlist_file == ""
-            cmd = cmd[1]
-        end
+            "--download-archive playlist.txt"]
     else
         error("Unknown OS")
     end

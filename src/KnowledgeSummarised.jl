@@ -1,4 +1,4 @@
-module ImmuneSummarised
+module KnowledgeSummarised
 include("Preprocess.jl")
 
 ##
@@ -9,17 +9,17 @@ Main function. It triggers the transciption and summarisation process.
 WARNING: Slow process on computers without a modern GPU
 
 # Arguments
-nothing
+- `playlist_url::String`: URL of video or playlist, from [supported sites](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md)
 
 # Returns
 - `summaries::Vector{String}`: Individual summaries of a larger document that may not fit in a smaller LLM's context Windows
 - `master_summary::Vector{String}`: A summary of all `summaries`
 """
-function julia_main(
-        playlist_url::String, playlist_file::String)::Tuple{Vector{String}, Vector{String}}
+function julia_main(playlist_url::String)::Tuple{Vector{String}, Vector{String}}
     # Extract the audio and download as .mp3 the video or entire playlist that `playlist_url` points to
-    episodes = Preprocess.download_episodes(playlist_url; playlist_file)
+    episodes = Preprocess.download_episodes(playlist_url)
 
+    local summaries
     for episode in episodes
         summaries::Vector{String} = master_summary::Vector{String} = transcripts::Vector{String} = []
 
