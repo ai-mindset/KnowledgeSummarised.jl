@@ -2,6 +2,17 @@ module KnowledgeSummarised
 include("Preprocess.jl")
 
 ##
+# Imports
+using Glob: glob
+
+##
+# const
+# Base.active_project()[end] returns `Project.toml`
+# @__DIR__ returns abs project path + /src
+const PROJECT_ABS_PATH::Vector{String} = split(Base.active_project(), "/")
+const PROJECT_ROOT::String = join(PROJECT_ABS_PATH[1:(end - 1)], "/")
+
+##
 """
     julia_main()
 
@@ -16,36 +27,38 @@ WARNING: Slow process on computers without a modern GPU
 - `master_summary::Vector{String}`: A summary of all `summaries`
 """
 function julia_main(playlist_url::String)::Tuple{Vector{String}, Vector{String}}
+    cd(PROJECT_ROOT)
+
     # Extract the audio and download as .mp3 the video or entire playlist that `playlist_url` points to
-    episodes = Preprocess.download_episodes(playlist_url)
+    episodes::Vector{String} = Preprocess.download_episodes(playlist_url, PROJECT_ROOT)
+    for episode in episodes
+        Preprocess.transcribe(episode, PROJECT_ROOT)
+    end
+
+    transcripts::Vector{String} = glob("*.text") # We're still in $PROJECT_ROOT/transcrips
 
     local summaries
-    for episode in episodes
-        summaries::Vector{String} = master_summary::Vector{String} = transcripts::Vector{String} = []
+    for file in transcripts
+        text::Vector{String} = open(file) |> readlines
+        _, no_words::Int64 = Preprocess.word_and_token_count(text)
+        println("Original transcript contains $no_words words")
+        d::Dict{Int64, String} = Preprocess.segment_input(text)
 
-        # FIXME
-        transcripts::Vector{String} = Preprocess.transcribe(episode)
-        for file in transcripts
-            Preprocess.clean_text(file)
-
-            text::Vector{String} = open(file) |> readlines
-            _, text_words::Int64 = Preprocess.word_and_token_count(text)
-            println("Original transcript contains $text_words words")
-            d::Dict{Int64, String} = Preprocess.segment_input(text)
-
-            append!(summaries, Preprocess.summarise_text("mistral", d))
-            if length(summaries) > 1
-                d_final::Dict{Int64, String} = Preprocess.segment_input(summaries)
-                append!(master_summary, Preprocess.summarise_text("mistral", d_final))
-                _, summary_words::Int64 = Preprocess.word_and_token_count(master_summary)
-                println("The summary contains $summary_words words. That is $(round(Int64, (text_words / summary_words)))x compression ratio")
-            end
-        end
+        transcript_summary::Vector{String} = Preprocess.summarise_text("mistral", d)
+        append!(summaries, transcript_summary)
     end
+    if length(summaries) > 1
+        d_final::Dict{Int64, String} = Preprocess.segment_input(summaries)
+        append!(master_summary, Preprocess.summarise_text("mistral", d_final))
+        _, summary_words::Int64 = Preprocess.word_and_token_count(master_summary)
+        println("The summary contains $summary_words words. That is $(round(Int64, (no_words / summary_words)))x compression ratio")
+    end
+
+    cd(PROJECT_ROOT) # Return to top-level
 
     return summaries, master_summary
 end
 
-master_summary, summary_of_summaries = julia_main()
+master_summary, summary_of_summaries = julia_main("https://www.youtube.com/shorts/iQEE0LwVp_Q")
 
-end # module ImmuneSummarised
+end # module KnowledgeSummarised

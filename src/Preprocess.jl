@@ -1,12 +1,16 @@
 module Preprocess
+include("OllamaAI.jl")
 
 ##
 # Imports
 using HTTP
 using JSON
-include("OllamaAI.jl")
+using Glob: glob
 
-## Globals
+##
+# const
+const VIDEO_SOURCE_DIR::String = "videos"
+const TRANSCRIPTS_DIR::String = "transcripts"
 const CONTEXT_TOKENS = 4192
 const CONTEXT_WORDS = round(Int64, CONTEXT_TOKENS * 0.75)
 
@@ -14,19 +18,18 @@ const CONTEXT_WORDS = round(Int64, CONTEXT_TOKENS * 0.75)
 """
     download_episodes(playlist_url::String, playlist_file::String)
 
-Download new episodes from a YouTube playlist of interest.  Episodes will be saved in
+Download new episodes from a channel or playlist.  Episodes will be saved in
 ```julia
-$(splitpath(Base.active_project())[end-1])/videos
+$(splitpath(Base.active_project())[end-1])/$VIDEO_SOURCE_DIR
 \```
+See [Supported sites](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) for
+more information.
 Make sure you've downloaded the latest [yt-dlp](https://github.com/yt-dlp/yt-dlp/releases)
 and placed it in your \$PATH
 
 # Arguments
-- `playlist_url::String`: A YouTube video or playlist URL, youtube.com, youtu.be, yewtu.be, piped.video etc. can be used
-
-# Keywords
-- `playlist_file::String = ""`: Text file keeping a record of the playlist videos that have already been downloaded to directory.
-If nothing is passed, it is assumed you're downloading a single episode
+- `playlist_url::String`: A video or playlist URL, youtube.com, youtu.be, yewtu.be, piped.video etc. can be used
+- `PROJECT_ROOT::String`: Top-level project path
 
 # Returns
 - `episodes::Vector{SubString{String}}`: List of episodes' audio (.mp3) downloaded from `playlist_url`
@@ -34,18 +37,18 @@ If nothing is passed, it is assumed you're downloading a single episode
 # Throws
 - `ErrorException`: If OS is unknown, throw error. Supported OSs are Linux, macOS, Windows.
 """
-function download_episodes(playlist_url::String;)::Vector{SubString{String}}
+function download_episodes(
+        playlist_url::String, PROJECT_ROOT::String)::Vector{String}
     # TODO: Check if `yt-dlp` is installed. If not, `mkdir` and `curl` the latest release for the host OS. Set `chmod u+x` and run locally
-
-    dir::String = "videos"
-    if !isdir(dir)
-        mkdir(dir)
+    current_dir = (@__DIR__)
+    if current_dir != PROJECT_ROOT
+        cd(PROJECT_ROOT)
     end
-    cd(dir)
+    if !isdir(VIDEO_SOURCE_DIR)
+        mkdir(VIDEO_SOURCE_DIR)
+    end
+    cd(VIDEO_SOURCE_DIR)
 
-    # If playlist file is empty, we expect a single video URL to be passed in.
-    # Otherwise, we expect a playlist which should be recorded in a `playlist_file`
-    # for speeding up future playlist updates
     local cmd
     if Sys.islinux()
         cmd = ["yt-dlp_linux -x --audio-format mp3 $(playlist_url) ",
@@ -60,21 +63,15 @@ function download_episodes(playlist_url::String;)::Vector{SubString{String}}
         error("Unknown OS")
     end
     try
-        if typeof(cmd) == Vector{String}
-            joined_cmd::String = join(cmd)
-            c = Cmd(convert(Vector{String}, split(joined_cmd)))
-            run(c)
-        else
-            c = Cmd(convert(Vector{String}, split(cmd)))
-            run(c)
-        end
+        joined_cmd::String = join(cmd)
+        c = Cmd(convert(Vector{String}, split(joined_cmd)))
+        run(c)
     catch e
         println("download_episodes():$(e)")
     end
 
-    ep::String = readchomp(`ls`)
-    episodes::Vector{SubString{String}} = split(ep, "\n")
-    cd("./../") # Return to top-level
+    episodes::Vector{String} = glob("*.mp3")
+    cd(PROJECT_ROOT) # Return to top-level
 
     return episodes
 end
@@ -88,98 +85,39 @@ Make sure you've downloaded the latest [whisper-standalone-win](https://github.c
 and placed it in your PATH
 
 # Arguments
-- `episode::String`: Filepath that contains an episode transcript. Supported files are .rst, .txt, .md
-
-# Keywords
-- `progress_bar::Bool = true`: Show progress bar instead of actual transcript, during transcription
-- `timestamps::Bool = false`: Include timestamp in transcript
+- `episode::String`: Audio of video filename to transcribe
 
 # Returns
-- `transcripts::Vector{String}`: Vector of names of transcripts in "./transcripts" dir
+- `transcripts::Vector{String}`: Vector of transcript names in "$TRANSCRIPTS_DIR" dir
 
 # Throws
 - `ErrorException`: If transcription fails, throw error
 othing
 """
-function transcribe(
-        episode::SubString{String}; progress_bar::Bool = true, timestamps::Bool = false)::Vector{String}
+function transcribe(episode::String, PROJECT_ROOT::String)::Vector{String}
     # TODO: Check if `whisper-faster` is installed. If not, `mkdir("exe")` or similar
     # and `curl` the latest release for the host OS. Set `chmod u+x` and run locally
+    current_dir = (@__DIR__)
+    if current_dir != PROJECT_ROOT
+        cd(PROJECT_ROOT)
+    end
+    if !isdir(TRANSCRIPTS_DIR)
+        mkdir(TRANSCRIPTS_DIR)
+    end
+    cd(TRANSCRIPTS_DIR)
+    episode = replace(episode, " " => "\\ ")
+    episode = replace(episode, "[" => "\\[", "]" => "\\]")
 
-    source = "videos"
-    dir = "transcripts"
-    if !isdir(dir)
-        mkdir(dir)
-    end
-    cd(dir)
-    out_rel_dir = "./" * dir
-    source_rel_dir = "./" * source * "/" * episode
+    full_path = " $PROJECT_ROOT/$VIDEO_SOURCE_DIR/$episode"
+    cmd = ["whisper-faster", full_path, " --language=English",
+        " --model=medium", " --output_dir=.", " -pp", " --output_format=text"]
 
-    cmd = ["whisper-faster $source_rel_dir --language=English --model=medium --output_dir=./$out_rel_dir"]
-    # Print progress bar instead of transcript?
-    prog_bar::String = tstamps::String = ""
-    if progress_bar == true
-        prog_bar = "--pp=true"
-        push!(cmd, prog_bar)
-    end
-    # Print timestamps?
-    if timestamps == false
-        tstamps = "--without_timestamps=true"
-        push!(cmd, tstamps)
-    end
+    println(`$(join(cmd))`)
 
     try
-        if typeof(cmd) == Vector{String}
-            joined_cmd::String = join(cmd)
-            c = Cmd(convert(Vector{String}, split(joined_cmd)))
-            run(c)
-        else
-            c = Cmd(convert(Vector{String}, split(cmd)))
-            run(c)
-        end
+        run(Cmd(cmd))
     catch e
-        println("transcribe():$(e)")
-    end
-
-    t::String = readchomp(`ls`)
-    transcripts::Vector{SubString{String}} = split(t, "\n")
-    cd("./../") # Return to top-level
-
-    return transcripts
-end
-
-##
-"""
-    clean_text(filename::String)
-
-# Arguments
-- `filename::String`: Transcript filename
-
-# Returns
-- `Int64`: Status code 0 for success, -1 for error
-
-# Throws
-- `ErrorException`: If text cleaning fails, throw errorothing
-"""
-function clean_text(filename::String)
-    # Define the regex pattern to match timestamps
-    pattern = r"^\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}$"
-    # Define regex pattern to remove number over timestamp & empty lines
-    expanded_pattern = r"(^\d+$)|(^\s*$)|($pattern)"
-
-    try
-        # Read the file and store non-matching lines in a list
-        lines_to_keep = filter(
-            line -> !occursin(expanded_pattern, line), readlines(filename))
-
-        # Write the filtered lines back to the file
-        open(filename, "w") do file
-            foreach(line -> println(file, line), lines_to_keep)
-        end
-        println("$filename cleaned!")
-    catch e
-        println("Oh no!")
-        println("clean_text():$(e)")
+        println("Preprocess.transcribe():$(e)")
     end
 end
 
@@ -267,20 +205,21 @@ end
 
 """
 function summarise_text(model::String, chunks::Dict{Int64, String})::Vector{String}
-    local summaries = Vector{String}()
     local url = "http://localhost:11434/api/generate"
-    for (k, v) in chunks
+    local summaries = Vector{String}()
+
+    for (_, v) in chunks
         prompt = "Transcript excerpt: $v"
-        prompt *= """\nSummarise the most important knowledge in the transcript above, in three paragraphs at most.
+        prompt *= """\nSummarise the most important knowledge in the transcript above.
             Only return the summary, wrapped in single quotes (' '), and nothing else.
-            Be concise"""
+            Be precise."""
         request = OllamaAI.send_request(prompt, model)
         res = HTTP.request("POST", url, [("Content-type", "application/json")], request)
         if res.status == 200
             body = JSON.parse(String(res.body))
             push!(summaries, body["response"])
         else
-            println("LLM returned status $(res.status)")
+            error("LLM returned status $(res.status)")
         end
     end
 
