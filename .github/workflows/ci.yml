@@ -1,0 +1,27 @@
+name: Compile Julia Apps
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        julia-version: [1.10.2]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Julia
+      uses: julia-actions/setup-julia@v1
+      with:
+        version: ${{ matrix.julia-version }}
+
+    - name: Install PackageCompiler.jl
+      run: julia --proj -e 'import Pkg; Pkg.add("PackageCompiler")'
+
+    - name: Load PackageCompiler.jl and create Julia app
+      run: julia --proj -e 'using PackageCompiler; create_app("./", "./ImmuneSummarised", force=true, filter_stdlibs=false, incremental=true, sysimage_build_args=`--compile=min -O0 --min-optlevel=0 --inline=no --check-bounds=no`)'
